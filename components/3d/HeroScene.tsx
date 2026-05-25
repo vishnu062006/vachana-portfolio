@@ -1,147 +1,170 @@
 'use client';
 
-import { Canvas, useFrame } from '@react-three/fiber';
-import { Float, MeshDistortMaterial, MeshWobbleMaterial } from '@react-three/drei';
-import { useRef, useMemo } from 'react';
-import * as THREE from 'three';
+import { useEffect, useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
+import { cn } from '@/lib/utils';
 
-function FloatingGeometry() {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const wireframeRef = useRef<THREE.Mesh>(null);
+/* ─── code snippets that rotate through ─── */
+const codeSnippets = [
+  {
+    filename: 'api/server.ts',
+    lang: 'typescript',
+    lines: [
+      { indent: 0, tokens: [{ text: 'import', color: 'text-purple-400' }, { text: ' { Hono }', color: 'text-cyan-300' }, { text: ' from', color: 'text-purple-400' }, { text: " 'hono'", color: 'text-amber-300' }] },
+      { indent: 0, tokens: [] },
+      { indent: 0, tokens: [{ text: 'const', color: 'text-purple-400' }, { text: ' app', color: 'text-cyan-300' }, { text: ' = ', color: 'text-gray-400' }, { text: 'new', color: 'text-purple-400' }, { text: ' Hono', color: 'text-emerald-400' }, { text: '()', color: 'text-gray-400' }] },
+      { indent: 0, tokens: [] },
+      { indent: 0, tokens: [{ text: 'app', color: 'text-cyan-300' }, { text: '.', color: 'text-gray-400' }, { text: 'get', color: 'text-amber-300' }, { text: "(", color: 'text-gray-400' }, { text: "'/api/health'", color: 'text-amber-300' }, { text: ', (c) =>', color: 'text-gray-400' }] },
+      { indent: 1, tokens: [{ text: 'c', color: 'text-cyan-300' }, { text: '.', color: 'text-gray-400' }, { text: 'json', color: 'text-amber-300' }, { text: '({', color: 'text-gray-400' }] },
+      { indent: 2, tokens: [{ text: 'status', color: 'text-white' }, { text: ': ', color: 'text-gray-400' }, { text: "'running'", color: 'text-emerald-400' }, { text: ',', color: 'text-gray-400' }] },
+      { indent: 2, tokens: [{ text: 'uptime', color: 'text-white' }, { text: ': ', color: 'text-gray-400' }, { text: 'process', color: 'text-cyan-300' }, { text: '.', color: 'text-gray-400' }, { text: 'uptime', color: 'text-amber-300' }, { text: '()', color: 'text-gray-400' }] },
+      { indent: 1, tokens: [{ text: '})', color: 'text-gray-400' }] },
+      { indent: 0, tokens: [{ text: ')', color: 'text-gray-400' }] },
+    ],
+  },
+  {
+    filename: 'hooks/useAuth.ts',
+    lang: 'typescript',
+    lines: [
+      { indent: 0, tokens: [{ text: 'export function', color: 'text-purple-400' }, { text: ' useAuth', color: 'text-amber-300' }, { text: '() {', color: 'text-gray-400' }] },
+      { indent: 1, tokens: [{ text: 'const', color: 'text-purple-400' }, { text: ' [user, setUser]', color: 'text-cyan-300' }, { text: ' = ', color: 'text-gray-400' }, { text: 'useState', color: 'text-amber-300' }, { text: '<', color: 'text-gray-400' }, { text: 'User', color: 'text-emerald-400' }, { text: '>()', color: 'text-gray-400' }] },
+      { indent: 0, tokens: [] },
+      { indent: 1, tokens: [{ text: 'const', color: 'text-purple-400' }, { text: ' login', color: 'text-cyan-300' }, { text: ' = ', color: 'text-gray-400' }, { text: 'async', color: 'text-purple-400' }, { text: ' (creds:', color: 'text-gray-400' }, { text: ' Creds', color: 'text-emerald-400' }, { text: ') => {', color: 'text-gray-400' }] },
+      { indent: 2, tokens: [{ text: 'const', color: 'text-purple-400' }, { text: ' res', color: 'text-cyan-300' }, { text: ' = ', color: 'text-gray-400' }, { text: 'await', color: 'text-purple-400' }, { text: ' fetch', color: 'text-amber-300' }, { text: '(', color: 'text-gray-400' }, { text: "'/auth'", color: 'text-amber-300' }, { text: ')', color: 'text-gray-400' }] },
+      { indent: 2, tokens: [{ text: 'const', color: 'text-purple-400' }, { text: ' data', color: 'text-cyan-300' }, { text: ' = ', color: 'text-gray-400' }, { text: 'await', color: 'text-purple-400' }, { text: ' res', color: 'text-cyan-300' }, { text: '.', color: 'text-gray-400' }, { text: 'json', color: 'text-amber-300' }, { text: '()', color: 'text-gray-400' }] },
+      { indent: 2, tokens: [{ text: 'setUser', color: 'text-amber-300' }, { text: '(', color: 'text-gray-400' }, { text: 'data', color: 'text-cyan-300' }, { text: '.', color: 'text-gray-400' }, { text: 'user', color: 'text-white' }, { text: ')', color: 'text-gray-400' }] },
+      { indent: 1, tokens: [{ text: '}', color: 'text-gray-400' }] },
+      { indent: 0, tokens: [] },
+      { indent: 1, tokens: [{ text: 'return', color: 'text-purple-400' }, { text: ' { user, login }', color: 'text-gray-400' }] },
+      { indent: 0, tokens: [{ text: '}', color: 'text-gray-400' }] },
+    ],
+  },
+];
 
-  useFrame((state) => {
-    if (meshRef.current) {
-      meshRef.current.rotation.x = state.clock.elapsedTime * 0.15;
-      meshRef.current.rotation.y = state.clock.elapsedTime * 0.2;
-    }
-    if (wireframeRef.current) {
-      wireframeRef.current.rotation.x = state.clock.elapsedTime * 0.1;
-      wireframeRef.current.rotation.y = state.clock.elapsedTime * 0.15;
-    }
-  });
+function CodeEditor() {
+  const prefersReducedMotion = useReducedMotion();
+  const [snippetIdx, setSnippetIdx] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSnippetIdx((prev) => (prev + 1) % codeSnippets.length);
+    }, 6000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const snippet = codeSnippets[snippetIdx];
 
   return (
-    <Float speed={1.5} rotationIntensity={0.4} floatIntensity={1.2}>
-      <group>
-        {/* Main solid shape */}
-        <mesh ref={meshRef}>
-          <icosahedronGeometry args={[1.8, 1]} />
-          <MeshDistortMaterial
-            color="#06b6d4"
-            emissive="#06b6d4"
-            emissiveIntensity={0.15}
-            roughness={0.4}
-            metalness={0.8}
-            distort={0.3}
-            speed={2}
-            transparent
-            opacity={0.35}
-          />
-        </mesh>
+    <div className="w-full rounded-2xl border border-white/[0.06] bg-[#0a0a0f] overflow-hidden shadow-2xl shadow-black/40">
+      {/* Title bar */}
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-white/[0.04] bg-white/[0.02]">
+        <div className="flex gap-1.5">
+          <span className="w-3 h-3 rounded-full bg-[#ff5f57]" />
+          <span className="w-3 h-3 rounded-full bg-[#febc2e]" />
+          <span className="w-3 h-3 rounded-full bg-[#28c840]" />
+        </div>
+        <span className="ml-3 text-xs text-gray-500 font-mono">
+          {snippet.filename}
+        </span>
+        <div className="ml-auto flex items-center gap-1.5">
+          <span className="h-1 w-1 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="text-[10px] text-gray-600 font-mono">live</span>
+        </div>
+      </div>
 
-        {/* Wireframe overlay */}
-        <mesh ref={wireframeRef} scale={1.02}>
-          <icosahedronGeometry args={[1.8, 1]} />
-          <meshBasicMaterial
-            color="#a855f7"
-            wireframe
-            transparent
-            opacity={0.25}
-          />
-        </mesh>
+      {/* Code content */}
+      <div className="p-5 font-mono text-[13px] leading-6 min-h-[280px]">
+        {snippet.lines.map((line, lineIdx) => (
+          <motion.div
+            key={`${snippetIdx}-${lineIdx}`}
+            className="flex"
+            initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, x: -8 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{
+              duration: 0.3,
+              delay: prefersReducedMotion ? 0 : lineIdx * 0.06,
+              ease: [0.21, 0.47, 0.32, 0.98] as const,
+            }}
+          >
+            {/* Line number */}
+            <span className="w-8 text-right text-gray-700 select-none mr-6 flex-shrink-0">
+              {lineIdx + 1}
+            </span>
 
-        {/* Inner glow sphere */}
-        <mesh scale={0.6}>
-          <sphereGeometry args={[1.8, 32, 32]} />
-          <MeshWobbleMaterial
-            color="#06b6d4"
-            emissive="#a855f7"
-            emissiveIntensity={0.3}
-            transparent
-            opacity={0.08}
-            factor={0.5}
-            speed={1}
-          />
-        </mesh>
-      </group>
-    </Float>
+            {/* Indent */}
+            {line.indent > 0 && (
+              <span className="flex-shrink-0" style={{ width: `${line.indent * 24}px` }} />
+            )}
+
+            {/* Tokens */}
+            <span>
+              {line.tokens.map((token, tokenIdx) => (
+                <span key={tokenIdx} className={token.color}>
+                  {token.text}
+                </span>
+              ))}
+            </span>
+          </motion.div>
+        ))}
+
+        {/* Blinking cursor */}
+        <motion.div
+          className="flex mt-1"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.8 }}
+        >
+          <span className="w-8 mr-6" />
+          <span className="inline-block w-[2px] h-[18px] bg-cyan-400 animate-pulse" />
+        </motion.div>
+      </div>
+    </div>
   );
 }
 
-function OrbitalRing({ radius, speed, color }: { radius: number; speed: number; color: string }) {
-  const ringRef = useRef<THREE.Mesh>(null);
-
-  useFrame((state) => {
-    if (ringRef.current) {
-      ringRef.current.rotation.z = state.clock.elapsedTime * speed;
-    }
-  });
+export default function HeroVisual() {
+  const prefersReducedMotion = useReducedMotion();
 
   return (
-    <mesh ref={ringRef} rotation={[Math.PI / 3, 0, 0]}>
-      <torusGeometry args={[radius, 0.008, 16, 100]} />
-      <meshBasicMaterial color={color} transparent opacity={0.3} />
-    </mesh>
-  );
-}
+    <div className="relative w-full h-full flex items-center justify-center p-4">
+      {/* Background glow behind editor */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-cyan-500/[0.04] rounded-full blur-[80px]" />
+        <div className="absolute top-1/4 right-1/4 w-[40%] h-[40%] bg-purple-500/[0.03] rounded-full blur-[60px]" />
+      </div>
 
-function Particles({ count = 50 }: { count?: number }) {
-  const points = useMemo(() => {
-    const positions = new Float32Array(count * 3);
-    for (let i = 0; i < count; i++) {
-      positions[i * 3] = (Math.random() - 0.5) * 8;
-      positions[i * 3 + 1] = (Math.random() - 0.5) * 8;
-      positions[i * 3 + 2] = (Math.random() - 0.5) * 8;
-    }
-    return positions;
-  }, [count]);
-
-  const pointsRef = useRef<THREE.Points>(null);
-
-  useFrame((state) => {
-    if (pointsRef.current) {
-      pointsRef.current.rotation.y = state.clock.elapsedTime * 0.05;
-      pointsRef.current.rotation.x = state.clock.elapsedTime * 0.03;
-    }
-  });
-
-  return (
-    <points ref={pointsRef}>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          args={[points, 3]}
-        />
-      </bufferGeometry>
-      <pointsMaterial
-        color="#06b6d4"
-        size={0.03}
-        transparent
-        opacity={0.6}
-        sizeAttenuation
-      />
-    </points>
-  );
-}
-
-export default function HeroScene() {
-  return (
-    <div className="w-full h-full" aria-hidden="true">
-      <Canvas
-        camera={{ position: [0, 0, 5.5], fov: 45 }}
-        gl={{ antialias: true, alpha: true }}
-        dpr={[1, 1.5]}
-        style={{ background: 'transparent' }}
+      {/* Status pills floating around the editor */}
+      <motion.div
+        className={cn(
+          'absolute -top-2 right-4 sm:top-2 sm:right-0',
+          'flex items-center gap-2 rounded-full',
+          'border border-emerald-500/20 bg-emerald-500/[0.06] backdrop-blur-sm',
+          'px-3 py-1.5 text-[11px] text-emerald-400 font-mono',
+        )}
+        animate={prefersReducedMotion ? {} : { y: [-3, 3, -3] }}
+        transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
       >
-        <ambientLight intensity={0.3} />
-        <pointLight position={[5, 5, 5]} intensity={0.8} color="#06b6d4" />
-        <pointLight position={[-5, -5, -5]} intensity={0.4} color="#a855f7" />
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+        all tests passing
+      </motion.div>
 
-        <FloatingGeometry />
-        <OrbitalRing radius={3} speed={0.3} color="#06b6d4" />
-        <OrbitalRing radius={3.5} speed={-0.2} color="#a855f7" />
-        <Particles count={40} />
-      </Canvas>
+      <motion.div
+        className={cn(
+          'absolute -bottom-2 left-4 sm:bottom-4 sm:left-0',
+          'flex items-center gap-2 rounded-full',
+          'border border-cyan-500/20 bg-cyan-500/[0.06] backdrop-blur-sm',
+          'px-3 py-1.5 text-[11px] text-cyan-400 font-mono',
+        )}
+        animate={prefersReducedMotion ? {} : { y: [3, -3, 3] }}
+        transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+      >
+        <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
+        deployed
+      </motion.div>
+
+      <div className="relative z-10 w-full">
+        <CodeEditor />
+      </div>
     </div>
   );
 }

@@ -17,8 +17,8 @@ import { Achievements } from '@/components/sections/Achievements';
 import { Experience } from '@/components/sections/Experience';
 import { Contact } from '@/components/sections/Contact';
 
-/* Heavy 3D — dynamic imports */
-const HeroScene = dynamic(() => import('@/components/3d/HeroScene'), {
+/* Dynamic imports for heavier client components */
+const HeroVisual = dynamic(() => import('@/components/3d/HeroScene'), {
   ssr: false,
   loading: () => (
     <div className="w-full h-full flex items-center justify-center">
@@ -51,7 +51,7 @@ export default function Home() {
       <Navbar />
 
       <main>
-        <Hero heroScene={<HeroScene />} />
+        <Hero heroScene={<HeroVisual />} />
         <About />
         <Skills />
         <Suspense
